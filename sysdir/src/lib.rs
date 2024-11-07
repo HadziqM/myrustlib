@@ -1,7 +1,10 @@
 #![allow(unused)]
 
 use log::{debug, error};
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::{Debug, Display},
+    path::{Path, PathBuf},
+};
 
 /// generelize patn for system app
 #[derive(Clone, Debug)]
@@ -20,6 +23,13 @@ impl Default for Sysdir {
             path: None,
             file: None,
         }
+    }
+}
+
+impl Display for Sysdir {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let x = self.path.clone().unwrap_or_default();
+        x.fmt(f)
     }
 }
 
@@ -105,8 +115,8 @@ mod tests {
     #[test]
     fn name() {
         let x = Sysdir::default();
-        let z = PathBuf::from(x.assets_dir("asdas.ix"));
-
-        println!("{z:?}",);
+        println!("{}", x.log_dir("mylog.txt"));
+        println!("{}", x.assets_dir("myasset.txt"));
+        println!("{}", x.config_dir("myconfig.txt"));
     }
 }

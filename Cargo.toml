@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["logger", "macros", "sysdir"]
+members = ["appflow", "logger", "macros", "sysdir"]
 
 [workspace.dependencies]
 # Log framework
@@ -15,6 +15,7 @@ regex = "1.11"
 chrono = { version = "0.4", features = ["serde"] }
 dotenv = "0.15"
 dirs = "5"
+indexmap = "2.6"
 
 
 # Http
