@@ -85,8 +85,6 @@ impl Mylogger {
     pub fn init(self) {
         #[cfg(debug_assertions)]
         std::env::set_var("ALLOWED_PRINT_DEBUG", "1");
-        #[cfg(not(debug_assertions))]
-        std::env::set_var("ALLOWED_PRINT_DEBUG", "0");
         log::set_boxed_logger(Box::new(self))
             .map(|()| log::set_max_level(log::LevelFilter::Debug))
             .ok();
@@ -111,10 +109,9 @@ impl Mylogger {
 
 impl log::Log for Mylogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        let x = metadata.target().contains("tokio");
-        let y = metadata.target().contains("reqwest");
+        let excluded = ["tokio", "reqwest", "hyper_utils"];
 
-        if !x && !y {
+        if !excluded.iter().any(|&p| metadata.target().starts_with(p)) {
             if let Ok(x) = std::env::var("ALLOWED_PRINT_DEBUG") {
                 if x == "1" {
                     return metadata.level() <= log::Level::Debug;
