@@ -10,6 +10,8 @@ use chrono::Local;
 pub use log;
 use std::io::Write;
 
+/// Logger for displaying log, can use file to write log there
+/// can use webhook to print error and wrning into discord
 #[derive(Clone)]
 pub struct Mylogger {
     webhook_url: Option<String>,
@@ -20,7 +22,7 @@ pub struct Mylogger {
 
 impl Default for Mylogger {
     fn default() -> Self {
-        let name = format!("{}.log", env!("CARGO_PKG_NAME").to_string());
+        let name = format!("{}.log", env!("CARGO_PKG_NAME"));
         Self {
             webhook_url: None,
             tag: None,
@@ -53,7 +55,7 @@ impl Mylogger {
             OpenOptions::new()
                 .append(true)
                 .create(true)
-                .open(&path.to_string())
+                .open(path.to_string())
                 .ok()
                 .map(Mutex::new)
                 .map(Arc::new)
@@ -143,7 +145,7 @@ impl log::Log for Mylogger {
             #[cfg(feature = "discord")]
             {
                 use log::Level;
-                if record.level() <= Level::Warn {
+                if record.level() <= Level::Info {
                     let s = self.clone();
                     let mut print = print.clone();
                     print = print.replace(&timestamp, &timest(ts));

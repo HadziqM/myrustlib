@@ -1,4 +1,0 @@
-[2024-11-07 17:46:53] [DEBUG] - [logger] [logger/src/lib.rs:188] - hello debug
-[2024-11-07 17:46:53] [INFO] - [logger] [logger/src/lib.rs:189] - hello info
-[2024-11-07 17:46:53] [WARN] - [logger] [logger/src/lib.rs:190] - hello warn
-[2024-11-07 17:46:53] [ERROR] - [logger] [logger/src/lib.rs:191] - hello error
