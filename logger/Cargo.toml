@@ -1,0 +1,16 @@
+[package]
+name = "logger"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+log.workspace = true
+chrono.workspace = true
+
+
+[features]
+discord = ["reqwest", "tokio", "serde", "serde_json"]
