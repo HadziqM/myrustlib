@@ -1,5 +1,5 @@
 #![allow(async_fn_in_trait)]
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::{fmt::Debug, process::Command};
 use tokio::signal;
 
@@ -40,7 +40,10 @@ pub trait Appflow: Clone + 'static {
 }
 
 pub trait AppResult<T, E> {
+    /// log error
     fn log(self) -> Result<T, E>;
+    /// log eroor as warn, make sure its false possitive
+    fn log_warn(self) -> Result<T, E>;
 }
 
 impl<T, E> AppResult<T, E> for Result<T, E>
@@ -53,6 +56,16 @@ where
             Err(e) => {
                 // this sould be handled gracefully by my logger
                 error!("{e:?}");
+            }
+        }
+        self
+    }
+    fn log_warn(self) -> Result<T, E> {
+        match &self {
+            Ok(_) => {}
+            Err(e) => {
+                // this sould be handled gracefully by my logger
+                warn!("{e:?}");
             }
         }
         self
