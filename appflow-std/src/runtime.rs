@@ -1,12 +1,11 @@
 use super::AppResult;
 use indexmap::IndexMap;
 use log::{debug, error};
-use std::sync::Arc;
-use thiserror::Error;
-use tokio::{
+use std::{
     process::{Child, Command},
-    sync::RwLock,
+    sync::{Arc, RwLock},
 };
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum ProcessStatus {
@@ -30,7 +29,7 @@ pub enum AppError {
     #[error("Failed to find the process/executable on the runtime given id: {0}")]
     NotFound(String),
     #[error("Failed to execute command : {0}")]
-    SubProcess(#[from] tokio::io::Error),
+    SubProcess(#[from] std::io::Error),
 }
 
 pub type AppRuntimeResult<T> = Result<T, AppError>;
@@ -48,6 +47,7 @@ impl AppProcess {
 
 /// To start runtime application to handle multiple process
 /// can be used with UI
+/// using std instead of tokio
 pub struct AppRuntime {
     pub apps: Arc<RwLock<IndexMap<String, AppProcess>>>,
 }
@@ -61,7 +61,7 @@ impl Default for AppRuntime {
 }
 
 impl AppRuntime {
-    pub async fn add_process(&self, mut app: AppProcess) -> AppRuntimeResult<()> {
+    pub fn add_process(&self, mut app: AppProcess) -> AppRuntimeResult<()> {
         debug!("Adding Process {}", app.id);
 
         let child = Command::new(app.command.clone())
@@ -72,24 +72,24 @@ impl AppRuntime {
         app.process = Some(child);
         let id = app.id.clone();
 
-        let mut process = self.apps.write().await;
+        let mut process = self.apps.write().unwrap();
         process.insert(app.id.clone(), app);
         debug!("Added Process {id} to runtime");
         Ok(())
     }
-    pub async fn start_batch(&self, apps: Vec<AppProcess>) -> AppRuntimeResult<()> {
+    pub fn start_batch(&self, apps: Vec<AppProcess>) -> AppRuntimeResult<()> {
         for app in apps {
-            self.add_process(app).await?;
+            self.add_process(app)?;
         }
         Ok(())
     }
 
-    pub async fn restart_process(&self, id: impl AsRef<str>) -> AppRuntimeResult<()> {
+    pub fn restart_process(&self, id: impl AsRef<str>) -> AppRuntimeResult<()> {
         let id = id.as_ref();
-        let mut apps = self.apps.write().await;
+        let mut apps = self.apps.write().unwrap();
         if let Some(app) = apps.get_mut(id) {
             if app.status == ProcessStatus::Running {
-                self.stop_process(app.id.clone()).await?;
+                self.stop_process(app.id.clone())?;
             }
             let child = Command::new(app.command.clone())
                 .args(app.args.clone())
@@ -105,13 +105,13 @@ impl AppRuntime {
         }
     }
 
-    pub async fn stop_process(&self, id: impl AsRef<str>) -> AppRuntimeResult<()> {
+    pub fn stop_process(&self, id: impl AsRef<str>) -> AppRuntimeResult<()> {
         let id = id.as_ref();
-        let mut apps = self.apps.write().await;
+        let mut apps = self.apps.write().unwrap();
         if let Some(app) = apps.get_mut(id) {
             if app.status == ProcessStatus::Running {
                 if let Some(process) = &mut app.process {
-                    process.kill().await.log()?;
+                    process.kill().log()?;
                 }
                 app.status = ProcessStatus::Stopped;
                 debug!("Stopped Process {id}");
@@ -123,9 +123,9 @@ impl AppRuntime {
         }
     }
 
-    pub async fn check_status(&self, id: impl AsRef<str>) -> AppRuntimeResult<ProcessStatus> {
+    pub fn check_status(&self, id: impl AsRef<str>) -> AppRuntimeResult<ProcessStatus> {
         let id = id.as_ref();
-        let apps = self.apps.read().await;
+        let apps = self.apps.read().unwrap();
         if let Some(app) = apps.get(id) {
             return Ok(app.status.clone());
         }
@@ -133,8 +133,8 @@ impl AppRuntime {
         Err(AppError::NotFound(id.to_string()))
     }
 
-    pub async fn update_status(&self) {
-        let mut apps = self.apps.write().await;
+    pub fn update_status(&self) {
+        let mut apps = self.apps.write().unwrap();
         for app in apps.values_mut() {
             if let Some(process) = &mut app.process {
                 if let Ok(status) = process.try_wait() {

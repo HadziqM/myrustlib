@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["appflow", "logger", "macros", "sysdir"]
+members = ["appflow", "appflow-std", "logger", "macros", "sysdir"]
 
 [workspace.dependencies]
 # Log framework

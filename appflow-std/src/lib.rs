@@ -1,17 +1,16 @@
-#![allow(async_fn_in_trait)]
 use log::{debug, error, info};
-use std::{fmt::Debug, process::Command};
-use tokio::signal;
+use std::{fmt::Debug, process::Command, sync::mpsc, thread};
 
 pub mod runtime;
 
 /// application flow to hanlde application lifecycle
-pub trait Appflow: Clone + 'static {
-    async fn cleanup(&self);
-    async fn restart(&self) {
+/// Using std instead of tokio
+pub trait Appflow: Sync + Send + Clone + 'static {
+    fn cleanup(&self);
+    fn restart(&self) {
         info!("Restarting application...");
         info!("Cleaning Up process");
-        self.cleanup().await;
+        self.cleanup();
 
         let current_exe = std::env::current_exe().unwrap();
         let args = std::env::args().skip(1); // Pass arguments
@@ -24,17 +23,36 @@ pub trait Appflow: Clone + 'static {
         std::process::exit(0);
     }
     /// use this to be main wheel, the one that lives forever
-    async fn main_process(&self);
+    fn main_process(&self);
 
     /// must be on tokio runtime
-    async fn init(self) {
+    fn init(self) {
         debug!("Initializing application...");
 
-        tokio::select! {
-            _ = signal::ctrl_c() => {
-                self.cleanup().await;
+        let (tx, rx) = mpsc::channel();
+
+        let m = self.clone();
+        let m_tx = tx.clone();
+
+        thread::spawn(move || {
+            m.main_process();
+            let _ = m_tx.send(0);
+        });
+
+        ctrlc::set_handler(move || {
+            info!("Ctrl+C received, shutting down...");
+            let _ = tx.send(0);
+        })
+        .ok();
+
+        // witing either process to exit
+        match rx.recv() {
+            Ok(_) => {
+                info!("Attemp to shutdown gracefully.....");
+                self.cleanup();
+                info!("Application has been shutdown");
             }
-            _ = self.main_process() => {},
+            Err(e) => error!("{:?}", e),
         }
     }
 }
