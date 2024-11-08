@@ -48,6 +48,19 @@ impl AppProcess {
 /// To start runtime application to handle multiple process
 /// can be used with UI
 /// using std instead of tokio
+/// ```
+///     let data = vec![
+///     AppProcess::new("agus", "hello_agus_5s.sh", vec![]),
+///     AppProcess::new("agung", "hello_agung_15s.sh", vec![]),
+///     AppProcess::new("andi", "hello_andi_10s.sh", vec![]),
+/// ];
+///
+/// let runtime = AppRuntime::default();
+///
+/// runtime
+///     .start_batch(data)
+///     .expect("Failed to start the runtime");
+///```
 pub struct AppRuntime {
     pub apps: Arc<RwLock<IndexMap<String, AppProcess>>>,
 }
@@ -131,6 +144,16 @@ impl AppRuntime {
         }
         error!("Process {id} not found");
         Err(AppError::NotFound(id.to_string()))
+    }
+
+    /// List id and status
+    pub fn list_status(&self) -> Vec<(String, ProcessStatus)> {
+        let mut con = vec![];
+        let apps = self.apps.read().unwrap();
+        for (id, process) in apps.iter() {
+            con.push((id.clone(), process.status.clone()));
+        }
+        con
     }
 
     pub fn update_status(&self) {
