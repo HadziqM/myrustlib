@@ -50,30 +50,31 @@ impl Mylogger {
         }
     }
 
-    pub fn with_file(path: impl ToString) -> Self {
+    pub fn with_file(path: impl AsRef<Path>) -> Self {
+        let path = path.as_ref();
         let file = Some(
             OpenOptions::new()
                 .append(true)
                 .create(true)
-                .open(path.to_string())
+                .open(path)
                 .ok()
                 .map(Mutex::new)
                 .map(Arc::new)
                 .expect("cant open file"),
         );
         Self {
-            path: path.to_string(),
+            path: path.to_string_lossy().to_string(),
             file,
             ..Default::default()
         }
     }
 
-    pub fn set_file_logger(mut self) -> Self {
+    pub fn set_file_logger(mut self, path: impl AsRef<Path>) -> Self {
         let file = Some(
             OpenOptions::new()
                 .append(true)
                 .create(true)
-                .open(&self.path)
+                .open(path)
                 .ok()
                 .map(Mutex::new)
                 .map(Arc::new)
@@ -165,7 +166,7 @@ impl log::Log for Mylogger {
 #[cfg(not(feature = "discord"))]
 #[test]
 fn name() {
-    Mylogger::default().set_file_logger().init();
+    Mylogger::default().init();
 
     log::debug!("hello debug");
     log::info!("hello info");
@@ -180,7 +181,6 @@ async fn name_log() {
     use tokio::time::sleep;
 
     Mylogger::webhook_url("https://discord.com/api/webhooks/1303970772330479677/sro4acV0VvNyY47hxbqhgRb7VpN2Y4UUBbPKbMGTfmEjksIIbhoYS4S4Aj4r7-5sfe0c","455622761168109569")
-        .set_file_logger()
         .init();
 
     println!("hello world");
