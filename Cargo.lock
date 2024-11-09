@@ -49,6 +49,8 @@ dependencies = [
  "ctrlc",
  "indexmap",
  "log",
+ "logger",
+ "macros",
  "thiserror 2.0.0",
 ]
 

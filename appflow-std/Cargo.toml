@@ -3,8 +3,15 @@ name = "appflow-std"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+doctest = false
+
 [dependencies]
 ctrlc = "3.4"
 log.workspace = true
 thiserror.workspace = true
 indexmap.workspace = true
+
+[dev-dependencies]
+logger = { path = "../logger" }
+macros = { path = "../macros" }

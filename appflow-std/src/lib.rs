@@ -1,12 +1,19 @@
 use log::{debug, error, info};
-use std::{fmt::Debug, process::Command, sync::mpsc, thread};
+use std::{
+    fmt::Debug,
+    process::Command,
+    sync::{mpsc, Arc},
+    thread,
+};
 
 pub mod runtime;
 
 /// application flow to hanlde application lifecycle
 /// Using std instead of tokio
-pub trait Appflow: Sync + Send + Clone + 'static {
-    fn cleanup(&self);
+pub trait Appflow: Sync + Send + Sized + 'static {
+    /// clean up process, default to doesnt do anything
+    fn cleanup(&self) {}
+    /// restart application
     fn restart(&self) {
         info!("Restarting application...");
         info!("Cleaning Up process");
@@ -23,24 +30,29 @@ pub trait Appflow: Sync + Send + Clone + 'static {
         std::process::exit(0);
     }
     /// use this to be main wheel, the one that lives forever
-    fn main_process(&self);
+    /// therror will be logged and caught automatically
+    fn main_process(&self) -> Result<(), Box<dyn std::error::Error>>;
 
-    /// must be on tokio runtime
+    /// Initialize the application
     fn init(self) {
         debug!("Initializing application...");
 
         let (tx, rx) = mpsc::channel();
 
-        let m = self.clone();
+        let m = Arc::new(self);
         let m_tx = tx.clone();
+        let m_clone = m.clone();
 
         thread::spawn(move || {
-            m.main_process();
+            info!("Starting main process...");
+            m_clone
+                .main_process()
+                .expect("Failed to start the main process");
             let _ = m_tx.send(0);
         });
 
         ctrlc::set_handler(move || {
-            info!("Ctrl+C received, shutting down...");
+            info!("SIGINT received, shutting down...");
             let _ = tx.send(0);
         })
         .ok();
@@ -49,7 +61,7 @@ pub trait Appflow: Sync + Send + Clone + 'static {
         match rx.recv() {
             Ok(_) => {
                 info!("Attemp to shutdown gracefully.....");
-                self.cleanup();
+                m.cleanup();
                 info!("Application has been shutdown");
             }
             Err(e) => error!("{:?}", e),
