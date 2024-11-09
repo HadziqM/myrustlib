@@ -1,14 +1,14 @@
 #![allow(async_fn_in_trait)]
 use log::{debug, error, info, warn};
-use std::{fmt::Debug, process::Command};
+use std::{fmt::Debug, process::Command, sync::Arc};
 use tokio::signal;
 
 pub mod runtime;
 
 /// application flow to hanlde application lifecycle
-pub trait Appflow: Clone + 'static {
-    async fn cleanup(&self);
-    async fn restart(&self) {
+pub trait Appflow: 'static + Sized {
+    async fn cleanup(self: Arc<Self>) {}
+    async fn restart(self: Arc<Self>) {
         info!("Restarting application...");
         info!("Cleaning Up process");
         self.cleanup().await;
@@ -24,17 +24,20 @@ pub trait Appflow: Clone + 'static {
         std::process::exit(0);
     }
     /// use this to be main wheel, the one that lives forever
-    async fn main_process(&self);
+    async fn main_process(self: Arc<Self>);
 
     /// must be on tokio runtime
     async fn init(self) {
         debug!("Initializing application...");
 
+        let s = Arc::new(self);
+        let s_clone = s.clone();
+
         tokio::select! {
             _ = signal::ctrl_c() => {
-                self.cleanup().await;
+                s_clone.cleanup().await;
             }
-            _ = self.main_process() => {},
+            _ = s.main_process() => {},
         }
     }
 }
