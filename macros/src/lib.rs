@@ -18,7 +18,8 @@ pub fn wrapper(input: TokenStream) -> TokenStream {
 #[darling(allow_unknown_fields, default)]
 struct SettingDotTomlOptions {
     setting: Option<String>,
-    path: Option<PathBuf>,
+    sysdir: Option<String>,
+    path: Option<String>,
 }
 
 #[proc_macro_derive(SettingDotToml, attributes(setting))]
@@ -41,8 +42,22 @@ fn process_apisetting(input: syn::DeriveInput) -> Result<TokenStream> {
             .collect();
         let opt = <SettingDotTomlOptions as darling::FromMeta>::from_list(&struct_attrs)?;
 
-        let path_i = opt.path.unwrap_or(PathBuf::from("setting.toml"));
-        let path = path_i.to_string_lossy();
+        let sysdir = match opt.sysdir {
+            Some(x) => match opt.path {
+                Some(y) => quote! {
+                    let sysdir = sysdir::Sysdir::custom_name(#x);
+                    let path = sysdir.config_path(#y);
+                },
+                None => quote! {
+                    let sysdir = sysdir::Sysdir::custom_name(#x);
+                    let path = sysdir.config_path("Setting.toml");
+                },
+            },
+            None => match opt.path {
+                Some(y) => quote! { let path = PathBuf::from(#y); },
+                None => quote! { let path = PathBuf::from("Setting.toml"); },
+            },
+        };
 
         let mut nested = quote! {};
         if let Some(setting) = opt.setting {
@@ -62,7 +77,9 @@ fn process_apisetting(input: syn::DeriveInput) -> Result<TokenStream> {
         return Ok(quote! {
             impl #name {
                 async fn get() -> Self {
-                    let path = std::path::PathBuf::from(#path);
+
+                    #sysdir
+
                     let current = toml::from_str::<toml::Value>(
                         &tokio::fs::read_to_string(path)
                             .await
