@@ -54,8 +54,8 @@ fn process_apisetting(input: syn::DeriveInput) -> Result<TokenStream> {
                 },
             },
             None => match opt.path {
-                Some(y) => quote! { let path = PathBuf::from(#y); },
-                None => quote! { let path = PathBuf::from("Setting.toml"); },
+                Some(y) => quote! { let path = std::path::PathBuf::from(#y); },
+                None => quote! { let path = std::path::PathBuf::from("Setting.toml"); },
             },
         };
 
