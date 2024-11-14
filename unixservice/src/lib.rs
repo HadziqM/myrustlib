@@ -8,22 +8,24 @@ use std::{
     sync::Arc,
 };
 
-pub trait UnixService: Sized + Sync + Send + 'static {
+pub trait UnixServiceClient: Sized + Send + Sync + 'static {
     /// this type better serve as signal (enum)
     type Signal: Serialize + DeserializeOwned + Send + Sync + 'static;
     /// this type better serve as signal (enum)
     type Response: Serialize + DeserializeOwned + Send + Sync + 'static;
 
-    fn name() -> String {
-        env!("CARGO_PKG_NAME").to_string()
-    }
+    /// required to connect to socket name
+    fn name() -> String;
     /// the self is reference counter so feel to use it
-    fn handle_request(
-        s: Arc<Self>,
-        signal: Self::Signal,
-    ) -> Result<Self::Response, Box<dyn std::error::Error>>;
+    fn handle_response(
+        self: Arc<Self>,
+        res: Self::Response,
+    ) -> Result<(), Box<dyn std::error::Error>>;
 
-    fn send_request(signal: Self::Signal) -> Result<Self::Response, Box<dyn std::error::Error>> {
+    fn send_request(
+        self: Arc<Self>,
+        signal: Self::Signal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let socket_path = Path::new("/tmp").join(format!("{}.sock", Self::name()));
 
         match UnixStream::connect(&socket_path) {
@@ -40,7 +42,7 @@ pub trait UnixService: Sized + Sync + Send + 'static {
                     return Err(Box::new(e));
                 }
 
-                Ok(deserialize(&buf)?)
+                self.handle_response(deserialize(&buf)?)
             }
             Err(e) => {
                 error!("Error connecting to socket: {}", e);
@@ -48,6 +50,23 @@ pub trait UnixService: Sized + Sync + Send + 'static {
             }
         }
     }
+}
+
+pub trait UnixServiceServer: Sized + Sync + Send + 'static {
+    /// this type better serve as signal (enum)
+    type Signal: Serialize + DeserializeOwned + Send + Sync + 'static;
+    /// this type better serve as signal (enum)
+    type Response: Serialize + DeserializeOwned + Send + Sync + 'static;
+
+    fn name() -> String {
+        env!("CARGO_PKG_NAME").to_string()
+    }
+    /// the self is reference counter so feel to use it
+    fn handle_request(
+        self: Arc<Self>,
+        signal: Self::Signal,
+    ) -> Result<Self::Response, Box<dyn std::error::Error>>;
+
     fn create_service(self) -> Result<(), Box<dyn std::error::Error>> {
         let socket_path = Path::new("/tmp").join(format!("{}.sock", Self::name()));
 
