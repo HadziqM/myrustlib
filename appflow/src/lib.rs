@@ -16,8 +16,8 @@ pub trait Appflow: 'static + Sized {
         let current_exe = std::env::current_exe().unwrap();
         let args = std::env::args().skip(1); // Pass arguments
 
-        if let Err(e) = Command::new(current_exe).args(args).spawn() {
-            error!("Failed to restart the program: {}", e);
+        if let Err(e) = Command::new(&current_exe).args(args).spawn() {
+            error!("Failed to restart the program: {e}, path : {current_exe:?}");
         }
 
         // Exit the current process
