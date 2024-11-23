@@ -167,11 +167,11 @@ pub trait Appflow: 'static + Sized {
     async fn cleanup(self: Arc<Self>) {}
 
     #[cfg(feature = "update")]
-    fn update_config(self: Arc<Self>) -> GithubUpdater;
+    async fn update_config(self: Arc<Self>) -> GithubUpdater;
 
     #[cfg(feature = "update")]
     async fn update(self: Arc<Self>) {
-        let updater = self.update_config();
+        let updater = self.update_config().await;
         updater.update().await.unwrap();
         std::process::exit(0);
     }
