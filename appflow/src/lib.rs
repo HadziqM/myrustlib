@@ -141,17 +141,22 @@ impl ApiResponse {
 
             fs::rename(&temp_exe, &current_exe)?;
 
-            fs::set_permissions(&current_exe, fs::Permissions::from_mode(0o755))?;
-
-            let args = std::env::args().skip(1); // Pass arguments
-                                                 //
-            if let Err(e) = Command::new(&current_exe).args(args).spawn() {
-                log::error!("Failed to restart the program: {e}, path : {current_exe:?}");
+            #[cfg(unix)]
+            {
+                use std::os::unix::process::CommandExt;
+                fs::set_permissions(&current_exe, fs::Permissions::from_mode(0o755))?;
+                return Err(Command::new(&current_exe).exec().into());
             }
 
-            // Exit the current process
+            #[cfg(windows)]
+            {
+                let args = std::env::args().skip(1); // Pass arguments
 
-            return Ok(());
+                if let Err(e) = Command::new(&current_exe).args(args).spawn() {
+                    log::error!("Failed to restart the program: {e}, path : {current_exe:?}");
+                }
+                return Ok(());
+            }
         }
         Err(UpdateError::Custom("No asset found".to_string()))
     }
