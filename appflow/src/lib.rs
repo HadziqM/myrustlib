@@ -1,7 +1,7 @@
 #![allow(async_fn_in_trait)]
 use log::{debug, error, info, warn};
-use std::{fmt::Debug, process::Command, sync::Arc};
-use tokio::signal;
+use std::{fmt::Debug, process::Command, sync::Arc, time::Duration};
+use tokio::{signal, time::sleep};
 
 pub mod runtime;
 
@@ -15,6 +15,16 @@ pub trait Appflow: 'static + Sized {
 
         let current_exe = std::env::current_exe().unwrap();
         let args = std::env::args().skip(1); // Pass arguments
+                                             //
+        debug!("Checking new executable accessibility...");
+        let retry_count = 100;
+        for _ in 0..retry_count {
+            if current_exe.exists() {
+                debug!("executable is ready.");
+                break;
+            }
+            sleep(Duration::from_millis(100)).await; // Small delay to let the OS settle
+        }
 
         if let Err(e) = Command::new(&current_exe).args(args).spawn() {
             error!("Failed to restart the program: {e}, path : {current_exe:?}");
