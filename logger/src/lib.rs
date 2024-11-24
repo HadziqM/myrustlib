@@ -18,6 +18,7 @@ pub struct Mylogger {
     tag: Option<String>,
     path: String,
     file: Option<Arc<Mutex<File>>>,
+    exception: Vec<String>,
 }
 
 impl Default for Mylogger {
@@ -28,6 +29,11 @@ impl Default for Mylogger {
             tag: None,
             path: name,
             file: None,
+            exception: vec![
+                "tokio".to_string(),
+                "reqwest".to_string(),
+                "hyper_utils".to_string(),
+            ],
         }
     }
 }
@@ -48,6 +54,11 @@ impl Mylogger {
             tag: Some(tag.to_string()),
             ..Default::default()
         }
+    }
+
+    pub fn add_exception(mut self, ex: impl ToString) -> Self {
+        self.exception.push(ex.to_string());
+        self
     }
 
     pub fn with_file(path: impl AsRef<Path>) -> Self {
@@ -110,7 +121,7 @@ impl Mylogger {
 
 impl log::Log for Mylogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        let excluded = ["tokio", "reqwest", "hyper_utils"];
+        let excluded = ["tokio", "reqwest", "hyper_utils", "tracing"];
 
         if !excluded.iter().any(|&p| metadata.target().starts_with(p)) {
             if let Ok(x) = std::env::var("ALLOWED_PRINT_DEBUG") {
