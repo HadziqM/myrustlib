@@ -32,7 +32,8 @@ impl Default for Mylogger {
             exception: vec![
                 "tokio".to_string(),
                 "reqwest".to_string(),
-                "hyper_utils".to_string(),
+                "hyper_util".to_string(),
+                "hyper".to_string(),
                 "tracing".to_string(),
             ],
         }

@@ -182,14 +182,24 @@ pub trait Appflow: 'static + Sized {
         self.cleanup().await;
 
         let current_exe = std::env::current_exe().unwrap();
-        let args = std::env::args().skip(1); // Pass arguments
-                                             //
-        if let Err(e) = Command::new(&current_exe).args(args).spawn() {
-            error!("Failed to restart the program: {e}, path : {current_exe:?}");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            let _ = Command::new(&current_exe).exec();
         }
 
-        // Exit the current process
-        std::process::exit(0);
+        #[cfg(windows)]
+        {
+            let args = std::env::args().skip(1); // Pass arguments
+                                                 //
+            if let Err(e) = Command::new(&current_exe).args(args).spawn() {
+                error!("Failed to restart the program: {e}, path : {current_exe:?}");
+            }
+
+            // Exit the current process
+            std::process::exit(0);
+        }
     }
     /// use this to be main wheel, the one that lives forever
     async fn main_process(self: Arc<Self>);
