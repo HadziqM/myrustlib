@@ -128,8 +128,9 @@ impl log::Log for Mylogger {
                     return metadata.level() <= log::Level::Debug;
                 }
             }
+            metadata.level() <= log::Level::Info
         }
-        metadata.level() <= log::Level::Info
+        false
     }
 
     fn log(&self, record: &log::Record) {
