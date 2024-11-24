@@ -128,7 +128,7 @@ impl log::Log for Mylogger {
                     return metadata.level() <= log::Level::Debug;
                 }
             }
-            metadata.level() <= log::Level::Info
+            return metadata.level() <= log::Level::Info;
         }
         false
     }
