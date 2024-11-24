@@ -33,6 +33,7 @@ impl Default for Mylogger {
                 "tokio".to_string(),
                 "reqwest".to_string(),
                 "hyper_utils".to_string(),
+                "tracing".to_string(),
             ],
         }
     }
@@ -121,9 +122,7 @@ impl Mylogger {
 
 impl log::Log for Mylogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        let excluded = ["tokio", "reqwest", "hyper_utils", "tracing"];
-
-        if !excluded.iter().any(|&p| metadata.target().starts_with(p)) {
+        if !self.exception.iter().any(|p| metadata.target().contains(p)) {
             if let Ok(x) = std::env::var("ALLOWED_PRINT_DEBUG") {
                 if x == "1" {
                     return metadata.level() <= log::Level::Debug;
