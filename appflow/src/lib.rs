@@ -1,9 +1,7 @@
 #![allow(async_fn_in_trait)]
 use log::{debug, error, info, warn};
-use std::{fmt::Debug, process::Command, sync::Arc};
+use std::{env, fmt::Debug, process::Command, sync::Arc};
 use tokio::signal;
-
-pub mod runtime;
 
 #[cfg(feature = "update")]
 mod upp {
@@ -140,14 +138,6 @@ impl ApiResponse {
             debug!("Replacing {}", current_exe.display());
 
             fs::rename(&temp_exe, &current_exe)?;
-
-            #[cfg(unix)]
-            {
-                use std::os::unix::process::CommandExt;
-                fs::set_permissions(&current_exe, fs::Permissions::from_mode(0o755))?;
-                return Err(Command::new(&current_exe).exec().into());
-            }
-
             #[cfg(windows)]
             {
                 let args = std::env::args().skip(1); // Pass arguments
@@ -155,7 +145,13 @@ impl ApiResponse {
                 if let Err(e) = Command::new(&current_exe).args(args).spawn() {
                     log::error!("Failed to restart the program: {e}, path : {current_exe:?}");
                 }
-                return Ok(());
+                std::process::exit(0);
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::process::CommandExt;
+                fs::set_permissions(&current_exe, fs::Permissions::from_mode(0o755))?;
+                return Err(Command::new(&current_exe).exec().into());
             }
         }
         Err(UpdateError::Custom("No asset found".to_string()))
@@ -173,7 +169,6 @@ pub trait Appflow: 'static + Sized {
     async fn update(self: Arc<Self>) {
         let updater = self.update_config().await;
         updater.update().await.unwrap();
-        std::process::exit(0);
     }
 
     async fn restart(self: Arc<Self>) {
@@ -210,6 +205,19 @@ pub trait Appflow: 'static + Sized {
 
         let s = Arc::new(self);
         let s_clone = s.clone();
+        let s2_clone = s.clone();
+
+        #[cfg(feature = "update")]
+        {
+            let args = env::args();
+            for arg in args {
+                if arg == "--update" {
+                    info!("Update triggered initialting github update");
+                    s2_clone.update().await;
+                    unreachable!();
+                }
+            }
+        }
 
         tokio::select! {
             _ = signal::ctrl_c() => {

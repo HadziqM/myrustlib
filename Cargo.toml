@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
   "appflow",
-  "appflow-std",
+  "appflow-std", "appruntime",
   "logger",
   "macros",
   "sysdir",
