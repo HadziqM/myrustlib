@@ -1,6 +1,6 @@
 #![allow(async_fn_in_trait)]
 use log::{debug, error, info, warn};
-use std::{env, fmt::Debug, process::Command, sync::Arc};
+use std::{fmt::Debug, process::Command, sync::Arc};
 use tokio::signal;
 
 #[cfg(feature = "update")]
@@ -205,11 +205,11 @@ pub trait Appflow: 'static + Sized {
 
         let s = Arc::new(self);
         let s_clone = s.clone();
-        let s2_clone = s.clone();
 
         #[cfg(feature = "update")]
         {
-            let args = env::args();
+            let s2_clone = s.clone();
+            let args = std::env::args();
             for arg in args {
                 if arg == "--update" {
                     info!("Update triggered initialting github update");

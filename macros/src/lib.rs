@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use darling::{FromMeta, Result};
 use proc_macro::TokenStream;
 use quote::quote;

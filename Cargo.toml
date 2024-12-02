@@ -2,10 +2,12 @@
 resolver = "2"
 members = [
   "appflow",
-  "appflow-std", "appruntime",
+  "appflow-std",
+  "appruntime",
   "logger",
   "macros",
   "sysdir",
+  "tcpservice",
   "unixservice",
 ]
 
@@ -14,12 +16,7 @@ members = [
 log = { version = "0.4", features = ["std"] }
 thiserror = "2"
 
-tokio = { version = "1.41", features = [
-  "signal",
-  "process",
-  "macros",
-  "sync",
-] } # Utility
+tokio = { version = "1.41", features = ["full"] }  # Utility
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 regex = "1.11"
