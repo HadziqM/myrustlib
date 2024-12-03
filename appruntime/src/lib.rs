@@ -92,22 +92,6 @@ impl AppProcess {
 /// To start runtime application to handle multiple process
 /// can be used with UI
 /// using tokio
-/// ```
-/// use appflow_std::runtime::{AppProcess, AppRuntime};
-///
-///     let data = vec![
-///     AppProcess::new("agus", "hello_agus_5s.sh", vec![]),
-///     AppProcess::new("agung", "hello_agung_15s.sh", vec![]),
-///     AppProcess::new("andi", "hello_andi_10s.sh", vec![]),
-/// ];
-///
-/// let runtime = AppRuntime::default();
-///
-/// runtime
-///     .add_batch(data);
-/// runtime.start_all().expect("Failed to start the runtime");
-///```
-///
 type MyRuntime = Arc<RwLock<IndexMap<String, AppProcess>>>;
 pub struct AppRuntime {
     pub apps: MyRuntime,
