@@ -9,39 +9,35 @@ use std::{
 /// generelize patn for system app
 #[derive(Clone, Debug)]
 pub struct Sysdir {
-    debug: bool,
     app_name: String,
-    path: Option<PathBuf>,
-    file: Option<PathBuf>,
+    path: PathBuf,
 }
 
 impl Default for Sysdir {
     fn default() -> Self {
         Self {
-            debug: false,
             app_name: env!("CARGO_PKG_NAME").to_string(),
-            path: None,
-            file: None,
+            path: PathBuf::new(),
         }
     }
 }
 
 impl Display for Sysdir {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let x = self.path.clone().unwrap_or_default();
+        let x = self.path.clone();
         x.fmt(f)
     }
 }
 
 impl From<Sysdir> for PathBuf {
     fn from(s: Sysdir) -> Self {
-        s.path.unwrap_or_default()
+        s.path
     }
 }
 
 impl AsRef<Path> for Sysdir {
     fn as_ref(&self) -> &Path {
-        self.path.as_deref().unwrap_or_else(|| Path::new(""))
+        &self.path
     }
 }
 
@@ -53,58 +49,58 @@ impl Sysdir {
         }
     }
 
-    /// set it so when debug doesnt use system path
-    /// on debug assertation still use current path
-    /// Default: false
-    pub fn set_debug(mut self, debug: bool) -> Self {
-        self.debug = debug;
-        self
+    fn config_name(&self, file: impl AsRef<Path>) -> PathBuf {
+        dirs::config_dir()
+            .unwrap()
+            .join(&self.app_name)
+            .join(file.as_ref())
     }
 
-    fn _add_name(&self, sys: Option<PathBuf>) -> PathBuf {
-        sys.unwrap_or(PathBuf::from(".")).join(&self.app_name)
-    }
-    fn path(&self, file: impl AsRef<Path>, _sys: Option<PathBuf>) -> Self {
+    fn define_path(&self, file: impl AsRef<Path>, current_dir: bool) -> Self {
         let mut x = self.clone();
-        x.file = Some(file.as_ref().to_path_buf());
-        x.path = Some(Path::new(".").join(file.as_ref()));
-        if self.debug {
-            return x;
+        match current_dir {
+            true => {
+                x.path = Path::new(".").join(file.as_ref());
+            }
+            false => {
+                x.path = dirs::config_dir()
+                    .unwrap()
+                    .join(&self.app_name)
+                    .join(file.as_ref());
+            }
         }
-        #[cfg(not(debug_assertions))]
-        {
-            x.path = Some(self._add_name(_sys).join(file.as_ref()));
-        }
-
-        debug!("Path generated: {:?}", x.path);
         x
     }
 
-    pub fn execute_dir(&self) -> PathBuf {
-        if let Some(p) = &self.path {
-            if let Some(parent) = p.parent() {
-                if let Some(f) = &self.file {
-                    if !parent.exists() {
-                        debug!("Path {p:?} doesnt exist, creating");
-                        if std::fs::create_dir_all(parent).is_err() {
-                            error!(" Cant create directory {p:?}");
-                            return Path::new(".").join(f);
-                        }
-                    }
-                    return p.clone();
-                }
-            }
+    pub fn find_path(&self, file: impl AsRef<Path>) -> Option<Self> {
+        let x = file.as_ref();
+        let cur_dir = self.define_path(x, true);
+        let sys_dir = self.define_path(x, false);
+
+        if cur_dir.path.exists() {
+            Some(cur_dir)
+        } else if sys_dir.path.exists() {
+            Some(sys_dir)
+        } else {
+            log::error!("Cant find file on current path or sys path");
+            None
         }
-        PathBuf::from("")
     }
+
     pub fn config_dir(&self, file: impl AsRef<Path>) -> Self {
-        self.path(file, dirs::config_dir())
+        self.define_path(file, false)
     }
-    pub fn log_dir(&self, file: impl AsRef<Path>) -> Self {
-        self.path(Path::new("logs").join(file.as_ref()), dirs::config_dir())
+    pub fn current_dir(&self, file: impl AsRef<Path>) -> Self {
+        self.define_path(file, true)
     }
-    pub fn assets_dir(&self, file: impl AsRef<Path>) -> Self {
-        self.path(Path::new("assets").join(file.as_ref()), dirs::config_dir())
+
+    pub fn execute_dir(&self) -> Option<()> {
+        let p = if self.path.is_dir() {
+            Some(self.path.as_path())
+        } else {
+            self.path.parent()
+        };
+        std::fs::create_dir_all(p?).ok()
     }
 }
 
@@ -115,8 +111,6 @@ mod tests {
     #[test]
     fn name() {
         let x = Sysdir::default();
-        println!("{}", x.log_dir("mylog.txt"));
-        println!("{}", x.assets_dir("myasset.txt"));
         println!("{}", x.config_dir("myconfig.txt"));
     }
 }
