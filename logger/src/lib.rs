@@ -151,7 +151,7 @@ impl log::Log for Mylogger {
                 line,
                 record.args()
             );
-            println!("{}", print);
+            println!("{print}");
             #[cfg(feature = "discord")]
             {
                 use log::Level;

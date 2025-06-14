@@ -94,13 +94,19 @@ impl Sysdir {
         self.define_path(file, true)
     }
 
-    pub fn execute_dir(&self) -> Option<()> {
+    pub fn execute_dir(&self) -> PathBuf {
         let p = if self.path.is_dir() {
             Some(self.path.as_path())
         } else {
             self.path.parent()
         };
-        std::fs::create_dir_all(p?).ok()
+        if p.unwrap().exists() {
+            match std::fs::create_dir_all(p.unwrap()) {
+                Ok(_) => return self.path.clone(),
+                Err(_) => return Path::new(".").join(self.path.file_name().unwrap()),
+            }
+        }
+        PathBuf::from("")
     }
 }
 
