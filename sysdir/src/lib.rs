@@ -100,13 +100,13 @@ impl Sysdir {
         } else {
             self.path.parent()
         };
+        // create dir or parent folder if not exist
         if !p.unwrap().exists() {
-            match std::fs::create_dir_all(p.unwrap()) {
-                Ok(_) => return self.path.clone(),
-                Err(_) => return Path::new(".").join(self.path.file_name().unwrap()),
+            if std::fs::create_dir_all(p.unwrap()).is_err() {
+                return Path::new(".").join(self.path.file_name().unwrap());
             }
         }
-        PathBuf::from("")
+        self.path.clone()
     }
 }
 
