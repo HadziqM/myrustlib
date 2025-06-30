@@ -100,7 +100,7 @@ impl Sysdir {
         } else {
             self.path.parent()
         };
-        if p.unwrap().exists() {
+        if !p.unwrap().exists() {
             match std::fs::create_dir_all(p.unwrap()) {
                 Ok(_) => return self.path.clone(),
                 Err(_) => return Path::new(".").join(self.path.file_name().unwrap()),
@@ -118,5 +118,11 @@ mod tests {
     fn name() {
         let x = Sysdir::default();
         println!("{}", x.config_dir("myconfig.txt"));
+    }
+
+    #[test]
+    fn execute() {
+        let x = Sysdir::default();
+        println!("{:?}", x.config_dir("test.txt").execute_dir());
     }
 }
